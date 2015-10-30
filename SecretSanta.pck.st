@@ -1,14 +1,14 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #2226] on 7 April 2015 at 8:31:23.669375 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #2563] on 30 October 2015 at 6:42:50.934065 pm'!
 'Description A program to draw names before Christmas. Names are listed in a text file:
 
 name1				"Single"
 name2 & name3	"Couples"
 
 See class comment for rules.'!
-!provides: 'SecretSanta' 1 2!
+!provides: 'SecretSanta' 1 3!
 !classDefinition: #SecretSanta category: #'SecretSanta-Model'!
 Object subclass: #SecretSanta
-	instanceVariableNames: 'pastYears singles spouses names counts runTime'
+	instanceVariableNames: 'path pastYears singles spouses names counts runTime'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'SecretSanta-Model'!
@@ -68,10 +68,10 @@ drawNames
 	self saveResults: out.
 ! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:27'!
+!SecretSanta methodsFor: 'file I/O' stamp: 'dhn 10/28/2015 15:47'!
 getLines
 	"Answer the lines obtained from a file"
-	| fileName file lines str |
+	| fileName wholeFile lines str |
 	lines _ OrderedCollection new.
 	fileName _ FillInTheBlankMorph 
 		request: 'File Containing Names?' 
@@ -81,37 +81,56 @@ getLines
 		acceptOnCR: true
 		answerExtent: FillInTheBlankMorph defaultAnswerExtent.
 	fileName notEmpty ifTrue: [
-			file _ FileDirectory new readOnlyFileNamed: fileName.
-			str _ file contents readStream.
-			[str atEnd not] whileTrue: [
-				lines add: (str upTo: Character cr) withoutTrailingBlanks. 
-				str next]].
-	file ifNotNil: [file close].
+			wholeFile _ ReadStream on: fileName asFileEntry fileContents.
+			[(str _ wholeFile nextLine) notNil]
+				whileTrue: [	str size > 0 
+					ifTrue: [lines add: (str upTo: Character cr) withoutTrailingBlanks]]]. 
 	^lines asArray! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 19:56'!
+!SecretSanta methodsFor: 'file I/O' stamp: 'dhn 10/28/2015 22:11'!
+getLinesFrom: fileName
+	"Answer the lines obtained from a file named fileName"
+	| wholeFile lines str |
+	
+	lines _ OrderedCollection new.
+	wholeFile _ ReadStream on: fileName asFileEntry fileContents.
+	[(str _ wholeFile nextLine) notNil]
+		whileTrue: [
+			str size > 0 
+				ifTrue: [lines add: (str upTo: Character cr) withoutTrailingBlanks]]. 
+	^ lines! !
+
+!SecretSanta methodsFor: 'initialization' stamp: 'dhn 10/30/2015 14:58'!
 initialize
-	| yr yrNow |
+	| yr |
 	super initialize.
-	self parseNames: self getLines.
+	
+	path _ (FillInTheBlankMorph
+		request: 'Directory?'
+		initialAnswer: 'c:\dir\etc\'
+		centerAt: Display center
+		onCancelReturn: ''
+		acceptOnCR: true
+		answerExtent: FillInTheBlankMorph defaultAnswerExtent).
+
+	self parseNames: (self getLinesFrom: path, self class in, '.txt').
 	names _ self namesList.
 	counts _ {0. 0. 0. 0. 0. 0.}.
-	yrNow _ self thisYear asNumber.
 	names ifNotEmpty: [
 		yr _ (FillInTheBlankMorph
-					request: 'Last of what 3 years?'
-					initialAnswer: (yrNow - 1) asString
+					request: 'Up to 3 years beginning with...'
+					initialAnswer: 'yyyy'
 					centerAt: Display center
 					onCancelReturn: ''
 					acceptOnCR: true
 					answerExtent: FillInTheBlankMorph defaultAnswerExtent) asNumber.
-		self yearsFrom: yr - 2 to: yr.
+		pastYears _ self yearsFrom: yr  to: yr +2.
 		self drawNames]
 			ifEmpty: [PopUpMenu inform: 'There can be no drawing
 without a list of names.'].
 ! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:08'!
+!SecretSanta methodsFor: 'initialization' stamp: 'dhn 3/8/2015 16:08'!
 namesList
 	"Answer the names of participants, ensuring no duplication"
 	^ (Set new
@@ -120,16 +139,17 @@ namesList
 		yourself) asOrderedCollection
 ! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:08'!
+!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 10/29/2015 18:40'!
 notPastYears: aCollection
 	"Answer true if for each name, the corresponding name in aCollection is not the same as in as many as 3 prior years; otherwise, answer false"
 	| dx |
 	1 to: pastYears size do: [:iy | 
-		dx _ pastYears at: iy.
-		1 to: names size do: [:ix | 
-			(dx at: (names at: ix ifAbsent: []) ifAbsent: []) = (aCollection at: ix)
-				ifTrue: [self tally: 3 + iy.
-					^ false]]].
+		(dx _ pastYears at: iy)
+			ifNotNil: [
+				1 to: names size do: [:ix | 
+					(dx at: (names at: ix ifAbsent: []) ifAbsent: []) = (aCollection at: ix)
+						ifTrue: [self tally: 3 + iy.
+							^ false]]]].
 	^ true! !
 
 !SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:09'!
@@ -164,9 +184,20 @@ notYou: aCollection
 			ifFalse: [^ false]].
 	^ true! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 18:42'!
+!SecretSanta methodsFor: 'initialization' stamp: 'dhn 10/29/2015 12:56'!
+parseLine: aString
+	"Answer an association of Santa -> recipient parsed from aString"
+	| ix santa kid |
+	
+	ix _ aString indexOf: $>.
+	santa _ (aString copyFrom: 1 to: ix - 1) withBlanksTrimmed asLowercase capitalized.
+	kid _ (aString copyFrom: ix + 6 to: aString size) withBlanksTrimmed asLowercase capitalized.
+	^ (santa -> kid)
+	! !
+
+!SecretSanta methodsFor: 'initialization' stamp: 'dhn 10/28/2015 18:24'!
 parseNames: anArray
-	"Answer the singles and spouses in anArray"
+	"Set the singles and spouses from names in anArray"
 	| ones |
 	ones _ OrderedCollection new.
 	spouses _ Dictionary new.
@@ -184,32 +215,39 @@ parseNames: anArray
 	singles _ ones asArray
 ! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 20:03'!
+!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 10/30/2015 17:49'!
 report: who drew: aList
-	"Show the results of the name drawing as a dictionary"
+	"Answer the results of the name drawing"
 	| str |
 	str _ String new writeStream.
-	str nextPutAll: 'drawn', self thisYear; newLine;
-		nextPutAll: '	"Answer the Secret Santa drawing of ', self thisYear, '"'; newLine;
-		nextPutAll: '	^ Dictionary new'; newLine.
+	str	
+		newLine;
+		nextPutAll: '==', self thisYear, '=='.
 	1 to: who size do: [:ix | 
-		str nextPutAll: '		at: ', (who at: ix) printString, ' put: ', (aList at: ix) printString, ';'; newLine].
-	str nextPutAll: '		yourself'; newLine.
+		str 
+			newLine;
+			nextPutAll: (who at: ix) printString, '  >drew>  ', (aList at: ix) printString].
 	^ str contents
 ! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:10'!
+!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 10/30/2015 17:32'!
 saveResults: aString
-	"Create a new class method from aString"
-	self class class compile: aString! !
+	"Optionally append the results to previous drawings"
+	| b |
+	b _ PopUpMenu 
+		confirm: 'Save results?'
+		trueChoice: 'Yes, append to file.'
+		falseChoice: 'No, leave file unchanged.'.
+	b ifTrue: [
+		(path, self class out, '.txt') asFileEntry appendContents: aString]! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 20:03'!
+!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 10/30/2015 17:54'!
 stats
 	"Answer statistics"
 	| str boilerPlate |
 	str _ String new writeStream.
 	boilerPlate _ ' times someone '.
-	str newLine;
+	str newLine; newLine;
 		nextPutAll: (counts at: 1) printString, boilerPlate, 'drew themselves.'; newLine;
 		nextPutAll: (counts at: 2) printString, boilerPlate, 'drew their spouse.'; newLine;
 		nextPutAll: (counts at: 3) printString, boilerPlate, 'had a reciprocal.'; newLine;
@@ -233,108 +271,59 @@ thisYear
 	^ (Date today printFormat: #( 3 2 1$/ 1 1)) copyFrom: 1 to: 4
 ! !
 
-!SecretSanta methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:16'!
+!SecretSanta methodsFor: 'initialization' stamp: 'dhn 10/30/2015 18:34'!
 yearsFrom: begin to: end
-	"Populate the pastYears collection with the results of class methods named drawnyyyy (yyyy = year)"
-	| symb dx |
-	pastYears _ OrderedCollection new.
-	begin to: end do: [:a | 
-		symb _ ('drawn', a asString) asSymbol.
-		(self class class canUnderstand: symb) 
-			ifTrue: [dx _ self class perform: symb.
-				pastYears add: dx]]
+	"Answer a collection of previous drawings"
+	| old outFile ios line sstr dx yr widgits get |
+	outFile _ (path, self class out, '.txt') asFileEntry assureExistence.
+	old _ OrderedCollection new.
+	ios _ ReadStream on: outFile fileContents.
+	yr _ begin.
+	get _ false.
+	dx _ Dictionary new.
+	
+	[ios atEnd not]
+		whileTrue: [
+			line _ ios nextLine.
+			sstr _ '==', yr asString.
+			line size >= 6
+				ifTrue: [
+				(line copyFrom: 1 to: 6) = sstr
+					ifTrue: [
+						get _ true.
+						yr _ yr + 1.
+						dx ifNotEmpty: [old add: dx].
+						dx _ Dictionary new]	"end if match for sstr"
+					ifFalse: [
+						(get and: yr <= (end + 1))
+							ifTrue: [
+								widgits _ self parseLine: line.
+								dx at: widgits key put: widgits value].
+						].	"end if no match for sstr"
+					].	"end if line size >="
+			].	"end while ios atEnd not"
+		dx ifNotEmpty: [old add: dx].
+	^ old
 ! !
 
-!SecretSanta class methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:16'!
-drawn2011
-	"Answer the Secret Santa drawing of 2011"
-	^ Dictionary new
-		at: 'Apu' put: 'Marge';
-		at: 'Bart' put: 'Monty';
-		at: 'Lisa' put: 'Apu';
-		at: 'Maggie' put: 'Seymour';
-		at: 'S.L.Helper' put: 'Lisa';
-		at: 'Snowball' put: 'Agnes';
-		at: 'Seymour' put: 'Ned';
-		at: 'Agnes' put: 'Smithers';
-		at: 'Homer' put: 'Maggie';
-		at: 'Marge' put: 'Bart';
-		at: 'Ned' put: 'Maude';
-		at: 'Maude' put: 'S.L.Helper';
-		at: 'Monty' put: 'Homer';
-		at: 'Smithers' put: 'Snowball';
-		yourself
-! !
-
-!SecretSanta class methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:17'!
-drawn2012
-	"Answer the Secret Santa drawing of 2012"
-	^ Dictionary new
-		at: 'Apu' put: 'Ned';
-		at: 'Bart' put: 'Snowball';
-		at: 'Lisa' put: 'Monty';
-		at: 'Maggie' put: 'Lisa';
-		at: 'S.L.Helper' put: 'Homer';
-		at: 'Snowball' put: 'Marge';
-		at: 'Seymour' put: 'S.L.Helper';
-		at: 'Agnes' put: 'Apu';
-		at: 'Homer' put: 'Agnes';
-		at: 'Marge' put: 'Seymour';
-		at: 'Ned' put: 'Smithers';
-		at: 'Maude' put: 'Maggie';
-		at: 'Monty' put: 'Bart';
-		at: 'Smithers' put: 'Maude';
-		yourself
-! !
-
-!SecretSanta class methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:17'!
-drawn2013
-	"Answer the Secret Santa drawing of 2013"
-	^ Dictionary new
-		at: 'Apu' put: 'Bart';
-		at: 'Bart' put: 'S.L.Helper';
-		at: 'Lisa' put: 'Agnes';
-		at: 'Maggie' put: 'Homer';
-		at: 'S.L.Helper' put: 'Maude';
-		at: 'Snowball' put: 'Monty';
-		at: 'Seymour' put: 'Apu';
-		at: 'Agnes' put: 'Snowball';
-		at: 'Homer' put: 'Ned';
-		at: 'Marge' put: 'Smithers';
-		at: 'Ned' put: 'Maggie';
-		at: 'Maude' put: 'Marge';
-		at: 'Monty' put: 'Seymour';
-		at: 'Smithers' put: 'Lisa';
-		yourself
-! !
-
-!SecretSanta class methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:17'!
-drawn2014
-	"Answer the Secret Santa drawing of 2014"
-	^ Dictionary new
-		at: 'Homer' put: 'Snowball';
-		at: 'Bart' put: 'Ned';
-		at: 'Maude' put: 'Monty';
-		at: 'Ned' put: 'Marge';
-		at: 'Apu' put: 'Agnes';
-		at: 'Lisa' put: 'Seymour';
-		at: 'Agnes' put: 'Homer';
-		at: 'Marge' put: 'S.L.Helper';
-		at: 'Smithers' put: 'Maggie';
-		at: 'Maggie' put: 'Bart';
-		at: 'Seymour' put: 'Smithers';
-		at: 'Snowball' put: 'Maude';
-		at: 'Monty' put: 'Lisa';
-		at: 'S.L.Helper' put: 'Apu';
-		yourself
-! !
-
-!SecretSanta class methodsFor: 'as yet unclassified' stamp: 'dhn 3/8/2015 16:17'!
+!SecretSanta class methodsFor: 'documentation' stamp: 'dhn 10/28/2015 17:54'!
 howTo
-	"Do:
+"
+	SecretSanta new.
+	
+	First time: create an input file of participants, then cmd-d on the line above.
+	Drawing results will be saved in an output file. This file and the input file will be used in subsequent drawings.
+	
+"! !
 
-	SecretSanta new
+!SecretSanta class methodsFor: 'file names' stamp: 'dhn 10/28/2015 17:56'!
+in
+	"Answer the name portion (preceeding .txt) of the file of participants"
+	
+	^ 'SSANTAinput'! !
 
-	the dictionary part of the output will be saved as a SecretSanta class method.
-	This will be used next year."
-! !
+!SecretSanta class methodsFor: 'file names' stamp: 'dhn 10/28/2015 17:56'!
+out
+	"Answer the name portion (preceeding .txt) of the file containing prior results"
+	
+	^ 'SSANTAoutput'! !
