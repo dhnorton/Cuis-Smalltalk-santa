@@ -8,7 +8,7 @@ Install the package, then (cmd-do) the following:
 
 SecretSanta new.
 
-Rules for the Secret Santa name drawing:
+The rules ensure no repetition year-to-year:
 
 - Can not draw yourself
 - Can not draw your spouse (you will give your spouse a gift anyway)
