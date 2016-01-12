@@ -1,8 +1,8 @@
-#Secret Santa
+##Secret Santa
 This class performs an annual drawing of names, ensuring that certain rules are followed.
 A family may decide to draw names at Christmas so that each person can receive one especially nice gift instead of many lesser ones. The tedium of obtaining a good drawing by "pulling names from a hat" inspired this program.
 
-A sample input file named "SSANTAinput.txt" is included in this package so that you can run the program and see the results. The name of each single person appears on a separate line. Spouses are entered on a separate line as Spouse1 & Spouse2. You will be asked for the directory of the input file and optional output file when the program runs.
+A sample input file named "SSANTAinput.txt" is included in this package so that you can run the program and see the results. The name of each single person appears on a separate line. Spouse pairs are entered on a separate line as Spouse1 & Spouse2. You will be asked for the directory of the input file and optional output file when the program runs.
 
 Install the package, then (cmd-do) the following:
 
