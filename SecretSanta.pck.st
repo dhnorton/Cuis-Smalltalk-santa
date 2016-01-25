@@ -1,11 +1,11 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #2563] on 31 October 2015 at 4:09:13.049001 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #2658] on 24 January 2016 at 9:29:36.506741 pm'!
 'Description A program to draw names before Christmas. Names are listed in a text file:
 
 name1				"Single"
 name2 & name3	"Couples"
 
 See class comment for rules.'!
-!provides: 'SecretSanta' 1 4!
+!provides: 'SecretSanta' 1 6!
 !classDefinition: #SecretSanta category: #'SecretSanta-Model'!
 Object subclass: #SecretSanta
 	instanceVariableNames: 'path pastYears singles spouses names counts runTime'
@@ -68,7 +68,7 @@ drawNames
 	self saveResults: out.
 ! !
 
-!SecretSanta methodsFor: 'file I/O' stamp: 'dhn 10/31/2015 14:40'!
+!SecretSanta methodsFor: 'operation' stamp: 'dhn 10/31/2015 14:40'!
 drawingFrom: aStream
 	"Answer the drawing results from aStream"
 	| line dx widgits |
@@ -88,22 +88,9 @@ drawingFrom: aStream
 	^ dx
 ! !
 
-!SecretSanta methodsFor: 'file I/O' stamp: 'dhn 10/28/2015 22:11'!
-getLinesFrom: fileName
-	"Answer the lines obtained from a file named fileName"
-	| wholeFile lines str |
-	
-	lines _ OrderedCollection new.
-	wholeFile _ ReadStream on: fileName asFileEntry fileContents.
-	[(str _ wholeFile nextLine) notNil]
-		whileTrue: [
-			str size > 0 
-				ifTrue: [lines add: (str upTo: Character cr) withoutTrailingBlanks]]. 
-	^ lines! !
-
-!SecretSanta methodsFor: 'initialization' stamp: 'dhn 10/31/2015 16:04'!
+!SecretSanta methodsFor: 'initialization' stamp: 'dhn 1/24/2016 19:47'!
 initialize
-	| yr |
+	| str lines yr |
 	super initialize.
 	
 	path _ (FillInTheBlankMorph
@@ -113,21 +100,24 @@ initialize
 		onCancelReturn: ''
 		acceptOnCR: true
 		answerExtent: FillInTheBlankMorph defaultAnswerExtent).
-
-	self parseNames: (self getLinesFrom: path, self class in, '.txt').
-	names _ self namesList.
+		
+	str _ String with: Character lf with: Character cr.
+	lines _ (path asDirectoryEntry at: self class in, '.txt') findTokens: str asString keep: ''.
+	self parseNames: lines.
+	
 	counts _ {0. 0. 0. 0. 0. 0.}.
-	names ifNotEmpty: [
-		yr _ (FillInTheBlankMorph
-					request: 'Up to 3 years beginning with...'
-					initialAnswer: 'yyyy'
-					centerAt: Display center
-					onCancelReturn: ''
-					acceptOnCR: true
-					answerExtent: FillInTheBlankMorph defaultAnswerExtent) asNumber.
-		pastYears _ self yearsFrom: yr  to: yr +2.
-		self drawNames]
-			ifEmpty: [PopUpMenu inform: 'There can be no drawing
+	(names _ self namesList)
+		ifNotEmpty: [
+			yr _ (FillInTheBlankMorph
+				request: 'Up to 3 years beginning with...'
+				initialAnswer: 'yyyy'
+				centerAt: Display center
+				onCancelReturn: ''
+				acceptOnCR: true
+				answerExtent: FillInTheBlankMorph defaultAnswerExtent) asNumber.
+			pastYears _ self yearsFrom: yr  to: yr +2.
+			self drawNames]
+		ifEmpty: [PopUpMenu inform: 'There can be no drawing
 without a list of names.'].
 ! !
 
@@ -231,16 +221,21 @@ report: who drew: aList
 	^ str contents
 ! !
 
-!SecretSanta methodsFor: 'output' stamp: 'dhn 10/30/2015 17:32'!
+!SecretSanta methodsFor: 'output' stamp: 'dhn 1/24/2016 20:49'!
 saveResults: aString
 	"Optionally append the results to previous drawings"
-	| b |
+	| b file dirEntry fullPath |
+	
+	file _ self class out, '.txt'.
 	b _ PopUpMenu 
-		confirm: 'Save results?'
-		trueChoice: 'Yes, append to file.'
-		falseChoice: 'No, leave file unchanged.'.
+		confirm: 'Save results to ', file, '?'
+		trueChoice: 'Yes, append to ', file, '.'
+		falseChoice: 'No, leave ', file, ' unchanged.'.
 	b ifTrue: [
-		(path, self class out, '.txt') asFileEntry appendContents: aString]! !
+		dirEntry _	path asDirectoryEntry / file.
+		fullPath _ dirEntry asString.
+		fullPath asFileEntry appendContents: aString]
+! !
 
 !SecretSanta methodsFor: 'output' stamp: 'dhn 10/30/2015 17:54'!
 stats
@@ -272,13 +267,19 @@ thisYear
 	^ (Date today printFormat: #( 3 2 1$/ 1 1)) copyFrom: 1 to: 4
 ! !
 
-!SecretSanta methodsFor: 'file I/O' stamp: 'dhn 10/31/2015 16:02'!
+!SecretSanta methodsFor: 'operation' stamp: 'dhn 1/24/2016 21:24'!
 yearsFrom: begin to: end
 	"Answer a collection of previous drawings"
-	| old outFile ios continue line yr yrs |
-	outFile _ (path, self class out, '.txt') asFileEntry assureExistence.
+	| old outFile dirEntry fullPath ios continue line yr yrs |
+	
+	outFile _ self class out, '.txt'.
+	dirEntry _	path asDirectoryEntry / outFile.
+	fullPath _ dirEntry asString.
+	fullPath asFileEntry assureExistence.
+	
 	old _ OrderedCollection new.
-	ios _ ReadStream on: outFile fileContents.
+	ios _ ReadStream on: fullPath fileContents.
+	
 	yr _ (begin to: end) asOrderedCollection.
 	continue _ true.
 	
