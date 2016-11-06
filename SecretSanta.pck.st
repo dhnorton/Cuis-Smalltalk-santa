@@ -1,11 +1,11 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #2658] on 24 January 2016 at 9:29:36.506741 pm'!
+'From Cuis 4.2 of 25 July 2013 [latest update: #2956] on 6 November 2016 at 2:36:18 pm'!
 'Description A program to draw names before Christmas. Names are listed in a text file:
 
 name1				"Single"
 name2 & name3	"Couples"
 
 See class comment for rules.'!
-!provides: 'SecretSanta' 1 6!
+!provides: 'SecretSanta' 1 7!
 !classDefinition: #SecretSanta category: #'SecretSanta-Model'!
 Object subclass: #SecretSanta
 	instanceVariableNames: 'path pastYears singles spouses names counts runTime'
@@ -88,7 +88,7 @@ drawingFrom: aStream
 	^ dx
 ! !
 
-!SecretSanta methodsFor: 'initialization' stamp: 'dhn 1/24/2016 19:47'!
+!SecretSanta methodsFor: 'initialization' stamp: 'dhn 11/6/2016 13:29:24'!
 initialize
 	| str lines yr |
 	super initialize.
@@ -98,8 +98,7 @@ initialize
 		initialAnswer: 'c:\dir\etc\'
 		centerAt: Display center
 		onCancelReturn: ''
-		acceptOnCR: true
-		answerExtent: FillInTheBlankMorph defaultAnswerExtent).
+		acceptOnCR: true).
 		
 	str _ String with: Character lf with: Character cr.
 	lines _ (path asDirectoryEntry at: self class in, '.txt') findTokens: str asString keep: ''.
@@ -113,8 +112,7 @@ initialize
 				initialAnswer: 'yyyy'
 				centerAt: Display center
 				onCancelReturn: ''
-				acceptOnCR: true
-				answerExtent: FillInTheBlankMorph defaultAnswerExtent) asNumber.
+				acceptOnCR: true) asNumber.
 			pastYears _ self yearsFrom: yr  to: yr +2.
 			self drawNames]
 		ifEmpty: [PopUpMenu inform: 'There can be no drawing
