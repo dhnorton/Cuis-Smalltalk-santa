@@ -1,4 +1,4 @@
-##Secret Santa
+#Secret Santa
 
 This class performs an annual drawing of names, ensuring that certain rules are followed.
 A family may decide to draw names at Christmas so that each person can receive one especially nice gift instead of many lesser ones. The tedium of obtaining a good drawing by "pulling names from a hat" inspired this program.
@@ -20,4 +20,4 @@ Names can be drawn even if there is no history for "the last 3 years". You will 
 
 Statistics are displayed below the drawing results. 
 
-Tested in Cuis 5.0  rev 2974
+Tested in Cuis 5.0  rev 3204
