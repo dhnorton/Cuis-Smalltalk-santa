@@ -1,4 +1,5 @@
 ##Secret Santa
+
 This class performs an annual drawing of names, ensuring that certain rules are followed.
 A family may decide to draw names at Christmas so that each person can receive one especially nice gift instead of many lesser ones. The tedium of obtaining a good drawing by "pulling names from a hat" inspired this program.
 
