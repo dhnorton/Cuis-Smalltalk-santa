@@ -1,11 +1,11 @@
-'From Cuis 4.2 of 25 July 2013 [latest update: #2956] on 6 November 2016 at 2:36:18 pm'!
+'From Cuis 5.0 of 7 November 2016 [latest update: #3204] on 2 November 2017 at 4:30:04 pm'!
 'Description A program to draw names before Christmas. Names are listed in a text file:
 
 name1				"Single"
 name2 & name3	"Couples"
 
 See class comment for rules.'!
-!provides: 'SecretSanta' 1 7!
+!provides: 'SecretSanta' 1 8!
 !classDefinition: #SecretSanta category: #'SecretSanta-Model'!
 Object subclass: #SecretSanta
 	instanceVariableNames: 'path pastYears singles spouses names counts runTime'
@@ -17,7 +17,7 @@ SecretSanta class
 	instanceVariableNames: ''!
 
 
-!SecretSanta commentStamp: 'dhn 3/8/2015 16:17' prior: 0!
+!SecretSanta commentStamp: 'dhn 11/2/2017 15:08:59' prior: 0!
 This class performs an annual drawing of names, ensuring that certain rules are followed.
 A family may decide to draw names at Christmas so that each person can receive one especially nice gift instead of many lesser ones. The tedium of obtaining a good drawing by "pulling names from a hat" inspired this program.
 
@@ -31,7 +31,7 @@ Can not have reciprocals (A draws B and B draws A)
 Can not be a repeat of the last 3 years
 
 Names can be drawn even if there is no history for "the last 3 years".
-History is built by using the output to create a class method for the current year.!
+The results are appended to the output file as long as you specify to save the drawing results. In this way, history is built up over time.!
 
 !SecretSanta methodsFor: 'output' stamp: 'dhn 3/8/2015 20:13'!
 display: anObject
