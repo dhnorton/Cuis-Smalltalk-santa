@@ -20,4 +20,4 @@ Names can be drawn even if there is no history for "the last 3 years". You will 
 
 Statistics are displayed below the drawing results. 
 
-Tested in Cuis 5.0  rev 3374 on 7/21/2018
+Tested in Cuis 5.0  rev 3633 on 2/25/2019
